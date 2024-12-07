@@ -1,0 +1,4 @@
+
+App/App/Models/IRv2/Model/IRv2_SA.keras
+App/App/Models/IRv2/Weights/IRV2_SA_TEST_HAM45_1001.hdf5
+App/App/Models/ResNet50/Weights/ResNet50_SA_TEST_HAM_3012.hdf5
