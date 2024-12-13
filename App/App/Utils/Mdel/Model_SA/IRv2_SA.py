@@ -1,4 +1,5 @@
 import tensorflow as tf
+import logging
 from tensorflow.keras import Model
 from tensorflow.keras.layers import concatenate,Dense, Conv2D, MaxPooling2D, Flatten,Input,Activation,add,AveragePooling2D,BatchNormalization,Dropout
 from tensorflow.keras import regularizers
@@ -6,6 +7,11 @@ from tensorflow.keras import regularizers
 from Utils.SA import SoftAttention
 # from SA import SoftAttention
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 def IRv2_SA_model():
 
@@ -24,21 +30,21 @@ def IRv2_SA_model():
     soft_attention = SoftAttention(aggregate=True, m=16, concat_with_x=False, ch=192,name='soft_attention')
     attention_layer_1, attention_maps_1 = soft_attention(dummy_input_1)
 
-    print("Attention layer shape:", attention_layer_1.shape)
-    print("Attention maps shape:", attention_maps_1.shape)
+    logging.info(f"Attention maps shape: {attention_layer_1.shape}")
 
     # Excluding the last 28 layers of the model.
     conv = irv2.layers[-28].output
-    print("Conv shape before SoftAttention IRv2:", conv.shape)
+    logging.info(f"Conv shape before SoftAttention IRv2: {conv.shape}")
 
     ch=conv.shape[-1]
     attention_layer, _ = SoftAttention(aggregate=True,m=16,concat_with_x=False,ch=int(conv.shape[-1]),name='soft_attention')(conv)
-    print("Attention layer shape IRv2:", attention_layer.shape)
+    logging.info(f"Attention layer shape IRv2: {attention_layer.shape}")
 
     attention_layer=(MaxPooling2D(pool_size=(2, 2),padding="same")(attention_layer))
     conv=(MaxPooling2D(pool_size=(2, 2),padding="same")(conv))
-    print("Conv shape after pooling IRv2:", conv.shape)
-    print("Attention layer shape after pooling IRv2:", attention_layer.shape)
+    logging.info(f"Conv shape after pooling IRv2: {conv.shape}")
+    logging.info(f"Attention layer shape after pooling IRv2: {attention_layer.shape}")
+
 
     conv = concatenate([conv, attention_layer])
     conv  = Activation('relu')(conv)

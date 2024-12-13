@@ -1,11 +1,11 @@
 #Soft Attention
-
+import logging
 from keras import backend as K
 from keras.layers import Layer,InputSpec
 from tensorflow.keras.utils import register_keras_serializable
 import keras.layers as kl
 import tensorflow as tf
-print(tf.__version__)
+logging.info(f"tensorflow version: {tf.__version__}")
 
 class SoftAttention(Layer):
     def __init__(self,ch,m,concat_with_x=False,aggregate=False,**kwargs):

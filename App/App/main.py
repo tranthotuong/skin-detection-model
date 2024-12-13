@@ -1,60 +1,89 @@
-import streamlit as st
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
+import requests
 import numpy as np
+import sys
+import json
 from Utils import predict
 from Utils import models as Model
+import argparse
+
+# Load the model only once
+def load_model():
+    try:
+        return Model.load_model()
+    except Exception as e:
+        raise RuntimeError(f"Failed to load model: {e}")
+
+# Process the image
+def process_image(image_url, models):
+    try:
+        # Download the image from the URL
+        response = requests.get(image_url, stream=True)
+        response.raise_for_status()
+
+        # Open the image
+        image = Image.open(response.raw)
+
+        # Convert image to numpy array for prediction
+        # image_array = np.array(image).copy()  # Create a copy to avoid reference issues
+
+        # Ensure the array is in the correct shape for the model
+        # Example: Resize the image to (224, 224) for models like ResNet
+        # resized_image_array = np.resize(image_array, (224, 224, 3))  # Adjust size and dimensions as required
+
+        # Run prediction
+        prediction, confidence  = predict.predict(image, models)
+
+        # Label decoding
+        # Label decoding with IDs
+        label_decode = {
+            0: {"id": 2, "name": "Actinic keratoses (akiec)"},
+            1: {"id": 3, "name": "Basal cell carcinoma (bcc)"},
+            2: {"id": 4, "name": "Benign keratosis-like lesions (bkl)"},
+            3: {"id": 5, "name": "Dermatofibroma (df)"},
+            4: {"id": 6, "name": "Melanoma (mel)"},
+            5: {"id": 7, "name": "Melanocytic nevi (nv)"},
+            6: {"id": 8, "name": "Vascular lesions (vasc)"},
+        }
+        diagnosis = label_decode.get(prediction, {"id": -1, "name": "Unknown"})
+
+        return {
+            "rep_skin_detection": {
+                "data": {
+                    "image_url": image_url,
+                    "diagnosis": diagnosis,
+                    "confidence": round(confidence * 100, 2)
+                },
+                "code": 200 
+            }          
+        }
+
+    except UnidentifiedImageError:
+        return {"error": "The provided URL does not contain a valid image"}
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Failed to fetch image from URL: {e}"}
+    except Exception as e:
+        return {"error": f"Error during diagnosis: {e}"}
 
 
-def main():
-    st.title('Dermatology Diagnosis')
-    st.sidebar.title('Upload')
+if __name__ == "__main__":
+    # Argument parser
+    parser = argparse.ArgumentParser(description="Skin diagnosis script")
+    parser.add_argument("--image_url", required=True, help="URL of the image to diagnose")
+    args = parser.parse_args()
+
+    # Extract the image URL
+    image_url = args.image_url
 
     # Load the model
     try:
-        st.sidebar.write("Loading model...")
-        models = Model.load_model()
-        st.sidebar.success("Model loaded successfully!")
-    except Exception as e:
-        st.sidebar.error(f"Error loading model: {e}")
-        return
+        models = load_model()
+    except RuntimeError as e:
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)
 
-    # Sidebar options
-    option = st.sidebar.selectbox('Choose an option', ('Upload Image',))
+    # Process the image and get diagnosis
+    result = process_image(image_url, models)
 
-    if option == 'Upload Image':
-        st.sidebar.write('Please upload an image in JPG, JPEG, or PNG format.')
-        uploaded_file = st.sidebar.file_uploader(
-            'Upload an image', 
-            type=['jpg', 'jpeg', 'png'], 
-            help='Accepted formats: JPG, JPEG, PNG'
-        )
-
-        if uploaded_file is not None:
-            try:
-                image = Image.open(uploaded_file)
-                st.image(image, caption='Uploaded Image', use_container_width=True)
-
-                if st.button('Diagnose'):
-                    # Run prediction
-                    prediction = predict.predict(image, models)
-
-                    # Label decoding
-                    label_decode = {
-                        0: 'Actinic keratoses (akiec)',
-                        1: 'Basal cell carcinoma (bcc)',
-                        2: 'Benign keratosis-like lesions (bkl)',
-                        3: 'Dermatofibroma (df)',
-                        4: 'Melanoma (mel)',
-                        5: 'Melanocytic nevi (nv)',
-                        6: 'Vascular lesions (vasc)'
-                    }
-
-                    diagnosis = label_decode.get(prediction, "Unknown")
-                    st.write("=================================")
-                    st.write(f"Prediction: **{diagnosis}**")
-            except Exception as e:
-                st.error(f"Error during diagnosis: {e}")
-
-
-if __name__ == '__main__':
-    main()
+    # Output the result as JSON
+    print(json.dumps(result))

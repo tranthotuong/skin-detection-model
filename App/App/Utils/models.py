@@ -11,7 +11,7 @@ from Utils.Mdel.Model_SA.ResNet50_SA import ResNet50_SA_model
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 def get_model():
-    models_path= r'E:/MSE/Đồ án/Project/skin-detection-model/App/App/Models'
+    models_path= r'E:/MSE/Capstone/Project/skin-detection-model/App/App/Models'
     targetnames = []
     model_lib={}
 
@@ -75,7 +75,3 @@ def load_model():
         load_models[model]= model_predict
 
     return load_models 
-
-
-# print(load_model())
-# custom_objects={'SoftAttention': SoftAttention_ResNet()}

@@ -19,7 +19,6 @@ def predict(image,models):
     for model,file in models_load.items():
         if str(model).__contains__("IRv2"):
             img_299= tf.keras.applications.inception_resnet_v2.preprocess_input(img_299)
-            print('img', img_299.shape)
             prediction = file.predict(img_299)
             st.write("=================================")
             st.write("Model - ", model)
@@ -53,6 +52,7 @@ def predict(image,models):
     # Hard Voting: Aggregate predictions from multiple models
     avg_predictions = np.mean(predictions, axis=0)
     final_prediction = np.argmax(avg_predictions)
+    confidence = score_dict[final_prediction]
 
-    return final_prediction
+    return final_prediction, confidence
 
