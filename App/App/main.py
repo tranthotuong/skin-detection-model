@@ -32,7 +32,7 @@ def process_image(image_url, models):
         # resized_image_array = np.resize(image_array, (224, 224, 3))  # Adjust size and dimensions as required
 
         # Run prediction
-        prediction, confidence  = predict.predict(image, models)
+        prediction, confidence, detailed_results  = predict.predict(image, models)
 
         # Label decoding
         # Label decoding with IDs
@@ -52,7 +52,8 @@ def process_image(image_url, models):
                 "data": {
                     "image_url": image_url,
                     "diagnosis": diagnosis,
-                    "confidence": round(confidence * 100, 2)
+                    "confidence": np.float32(confidence),
+                    "detailed_results":detailed_results
                 },
                 "code": 200 
             }          
@@ -65,6 +66,15 @@ def process_image(image_url, models):
     except Exception as e:
         return {"error": f"Error during diagnosis: {e}"}
 
+# Custom function to handle numpy types
+def convert_numpy_types(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()  # Convert numpy arrays to lists
+    if isinstance(obj, (np.float32, np.float64)):
+        return round(float(obj), 2)  # Convert numpy float to native Python float
+    if isinstance(obj, (np.int32, np.int64)):
+        return int(obj)  # Convert numpy int to native Python int
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 if __name__ == "__main__":
     # Argument parser
@@ -84,6 +94,5 @@ if __name__ == "__main__":
 
     # Process the image and get diagnosis
     result = process_image(image_url, models)
-
     # Output the result as JSON
-    print(json.dumps(result))
+    print(json.dumps(result, default=convert_numpy_types))
